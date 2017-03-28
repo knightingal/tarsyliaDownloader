@@ -39,28 +39,19 @@ function queryImg(section_id) {
     });
 }
 
-
-
-queryBook().then(bookRows => {
-    return Promise.all(bookRows.map(bookRow => {
-        return querySection(bookRow.id).then(sectionRows => {
-            bookRow.section = sectionRows;
-        });
-    })).then(() => {
-        return bookRows;
-    });
-}).then(bookRows => {
-    // console.log(bookRows);
-    return Promise.all(bookRows.map(bookRow => {
-        return Promise.all(bookRow.section.map(section => {
-            return queryImg(section.id).then(imgRows => {
-                section.img = imgRows;
-            });
-        })).then(() => {});
-    })).then(() => {
-        return bookRows;
-    });
-}).then(bookRows => {
-    console.log(JSON.stringify(bookRows));
+(async () => {
+    books = await queryBook();
+    for (let book of books) {
+        let sectionDetails = await querySection(book.id);
+        book.section = sectionDetails;
+        for (let section of sectionDetails) {
+            let imgDetails = await queryImg(section.id);
+            section.img = imgDetails;
+        }
+    }
+    return books;
+})()
+.then(books => {
+    console.log(JSON.stringify(books));
     connection.end();
 });
