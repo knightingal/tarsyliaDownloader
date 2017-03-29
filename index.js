@@ -1,6 +1,9 @@
-var mysql = require('mysql');
+const mysql = require('mysql');
+// const fetch = require('node-fetch');
+const fs = require('fs');
+const batchDownload = require('./download').batchDownload;
 
-var connection = mysql.createConnection({
+const connection = mysql.createConnection({
     host:'127.0.0.1',
     user:'Knightingal',
     password:'123456',
@@ -39,6 +42,15 @@ function queryImg(section_id) {
     });
 }
 
+function batchFetchImgs(imgs) {
+    return Promise.all(imgs.map(img => {
+        return fetch(img.src).then(res => {
+            var dest = fs.createWriteStream('./' + img.id + '.jpg');
+            res.body.pipe(dest);
+            console.log(img.src + "download succ");
+        });
+    }));
+}
 (async () => {
     books = await queryBook();
     for (let book of books) {
@@ -51,7 +63,17 @@ function queryImg(section_id) {
     }
     return books;
 })()
-.then(books => {
-    console.log(JSON.stringify(books));
+.then(async books => {
+    // console.log(JSON.stringify(books));
     connection.end();
+
+    batchDownload(books[0].section[0].img);
+    // for (let book of books) {
+    //     let sections = book.section;
+    //     for (let section of sections) {
+    //         let imgs = section.img;
+    //         console.log("start to download " + JSON.stringify(imgs));
+    //         await batchFetchImgs(imgs);
+    //     }
+    // }
 });
