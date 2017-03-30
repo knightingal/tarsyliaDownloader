@@ -29,7 +29,7 @@ var imgArrayManager = new ImgArrayManager();
 dEmitter.on("next", function(dirName) {
     var currentImg = imgArrayManager.getCurrentImg();
     if (currentImg != undefined) {
-        startDownload(currentImg, dirName);
+        startDownload(currentImg.src, dirName).then(getHttpReqCallback(currentImg.src, dirName));
     }
 });
 
@@ -67,7 +67,7 @@ function getHttpReqCallback(imgSrc, dirName) {
                 console.log("bufferLenght = " + totalBuff.length + ", this contentLength = " + contentLength);
                 if (totalBuff.length < contentLength) {
                     console.log(imgSrc + " download error, try again");
-                    startDownload(imgSrc, dirName);
+                    startDownload(imgSrc, dirName).then(getHttpReqCallback(imgSrc, dirName));
                     return;
                 }
                 fs.appendFile(dirName + "/" + fileName, totalBuff, function(err){});
@@ -85,8 +85,10 @@ function getHttpReqCallback(imgSrc, dirName) {
         })(fileName, contentLength));
     };
 }
+
+
+
 function startDownload(imgSrc, dirName) {
-    imgSrc = imgSrc.src;
     var urlObj = url.parse(imgSrc);
     // var fileName = path.basename(imgSrc);
     var options = {
@@ -95,16 +97,20 @@ function startDownload(imgSrc, dirName) {
         headers: new ReqHeadersTemp()
     };
 
-    var req = http.request(options, getHttpReqCallback(imgSrc, dirName));
-    req.setTimeout(60 * 1000, function() {
-        console.log(imgSrc + 'timeout');
-        req.abort();
-    });
-    req.on('error', function(e) {
-        startDownload(imgSrc, dirName);
-    });
+    // var req = http.request(options, getHttpReqCallback(imgSrc, dirName));
+    var req = new Promise((resolve, reject) => {
+        var req = http.request(options, resolve);
+        req.setTimeout(60 * 1000, function() {
+            console.log(imgSrc + 'timeout');
+            req.abort();
+        });
+        req.on('error', function(e) {
+            startDownload(imgSrc, dirName).then(getHttpReqCallback(imgSrc, dirName));
+        });
 
-    req.end();
+        req.end();
+    });//.then(getHttpReqCallback(imgSrc, dirName));
+    return req;
 }
 
 
@@ -112,8 +118,8 @@ function startDownload(imgSrc, dirName) {
 function downloadFor20(imgSrcArray, dirName) {
     for (var i = 0; i < imgSrcArray.length; i++) {
         //   var imgSrc = imgSrcArray[i].imrSrc;
-        var imgSrc = imgSrcArray[i];
-        startDownload(imgSrc, dirName)
+        var imgSrc = imgSrcArray[i].src;
+        startDownload(imgSrc, dirName).then(getHttpReqCallback(imgSrc, dirName));
     }
 }
 
