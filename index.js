@@ -1,7 +1,7 @@
 const mysql = require('mysql');
 // const fetch = require('node-fetch');
 const fs = require('fs');
-const batchDownload = require('./download').batchDownload;
+const ImgArrayManager = require('./download').ImgArrayManager;
 
 const connection = mysql.createConnection({
     host:'127.0.0.1',
@@ -67,7 +67,9 @@ function batchFetchImgs(imgs) {
     // console.log(JSON.stringify(books));
     connection.end();
 
-    batchDownload(books[0].section[0].img);
+    new ImgArrayManager(books[0].section[0].img).batchDownload().then(() => {
+        console.log("completed");  
+    });
     // for (let book of books) {
     //     let sections = book.section;
     //     for (let section of sections) {
