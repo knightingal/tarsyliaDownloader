@@ -53,7 +53,7 @@ const ImgArrayManager = function(imgs) {
                     console.log("bufferLenght = " + totalBuff.length + ", this contentLength = " + contentLength);
                     if (totalBuff.length < contentLength) {
                         console.log(imgSrc + " download error, try again");
-                        startDownload(imgSrc, dirName).then(getHttpReqCallback(imgSrc, dirName));
+                        startDownload(imgSrc, dirName);
                         return;
                     }
                     fs.appendFile(dirName + "/" + fileName, totalBuff, function(err){});
@@ -70,11 +70,59 @@ const ImgArrayManager = function(imgs) {
             })(fileName, contentLength));
         };
     };
+    this.startDownload = (imgSrc, dirName) => {
+        var urlObj = url.parse(imgSrc);
+        // var fileName = path.basename(imgSrc);
+        var options = {
+            host: urlObj.host,
+            path: urlObj.path,
+            headers: new ReqHeadersTemp()
+        };
+
+        // var req = http.request(options, getHttpReqCallback(imgSrc, dirName));
+        var req = http.request(options,  (res) => {
+            var fileName = path.basename(imgSrc);
+            var contentLength = parseInt(res.headers['content-length']);
+            var fileBuff = [];
+            res.on('data', function (chunk) {
+                var buffer = new Buffer(chunk);
+                fileBuff.push(buffer);
+            });
+            res.on('end', () => {
+                var totalBuff = Buffer.concat(fileBuff);
+                console.log("bufferLenght = " + totalBuff.length + ", this contentLength = " + contentLength);
+                if (totalBuff.length < contentLength) {
+                    console.log(imgSrc + " download error, try again");
+                    startDownload(imgSrc, dirName);
+                    return;
+                }
+                fs.appendFile(dirName + "/" + fileName, totalBuff, function(err){});
+                this.completedCount += 1;
+                console.log("(" + this.completedCount + "/" + this.total + ")" + fileName + " download succ!");
+
+                if (this.completedCount == this.total) {
+                    console.log("all task succ!");
+                    this.dEmitter.emit("over", dirName);
+                    //router.initCb();
+                }
+                this.dEmitter.emit("next", dirName);
+            });
+        });
+        req.setTimeout(60 * 1000, function() {
+            console.log(imgSrc + 'timeout');
+            req.abort();
+        });
+        req.on('error', function(e) {
+            this.startDownload(imgSrc, dirName);
+        });
+
+        req.end();
+    };
     this.downloadFor20 = (imgSrcArray, dirName) => {
         for (var i = 0; i < imgSrcArray.length; i++) {
             //   var imgSrc = imgSrcArray[i].imrSrc;
             var imgSrc = imgSrcArray[i].src;
-            startDownload(imgSrc, dirName).then(this.getHttpReqCallback(imgSrc, dirName));
+            this.startDownload(imgSrc, dirName);
         }
     }
     this.batchDownload = () => {
@@ -105,30 +153,6 @@ function ReqHeadersTemp() {
 
 
 
-function startDownload(imgSrc, dirName) {
-    var urlObj = url.parse(imgSrc);
-    // var fileName = path.basename(imgSrc);
-    var options = {
-        host: urlObj.host,
-        path: urlObj.path,
-        headers: new ReqHeadersTemp()
-    };
-
-    // var req = http.request(options, getHttpReqCallback(imgSrc, dirName));
-    var req = new Promise((resolve, reject) => {
-        var req = http.request(options, resolve);
-        req.setTimeout(60 * 1000, function() {
-            console.log(imgSrc + 'timeout');
-            req.abort();
-        });
-        req.on('error', function(e) {
-            startDownload(imgSrc, dirName).then(getHttpReqCallback(imgSrc, dirName));
-        });
-
-        req.end();
-    });//.then(getHttpReqCallback(imgSrc, dirName));
-    return req;
-}
 
 
 
