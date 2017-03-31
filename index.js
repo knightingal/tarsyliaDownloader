@@ -62,20 +62,11 @@ function batchFetchImgs(imgs) {
         }
     }
     return books;
-})()
-.then(async books => {
+})().then(async books => {
     // console.log(JSON.stringify(books));
     connection.end();
 
     new ImgArrayManager(books[0].section[0].img).batchDownload().then(() => {
         console.log("completed");  
     });
-    // for (let book of books) {
-    //     let sections = book.section;
-    //     for (let section of sections) {
-    //         let imgs = section.img;
-    //         console.log("start to download " + JSON.stringify(imgs));
-    //         await batchFetchImgs(imgs);
-    //     }
-    // }
 });

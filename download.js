@@ -11,9 +11,11 @@ require('util').inherits(DEventEmitter, EventEmitter)
 
 
 
-var ImgArrayManager = function(imgs) {
+const ImgArrayManager = function(imgs) {
+    this.imgArray = imgs;
+    this.total = imgs.length;
     this.dEmitter = new DEventEmitter();
-    this["getCurrentImg"] = () => {
+    this.getCurrentImg = () => {
         return this.imgArray[this.currentIndex++];
     };
     this.dEmitter.on("next", (dirName) => {
@@ -25,10 +27,9 @@ var ImgArrayManager = function(imgs) {
     this.dEmitter.on("over", () => {
         this.resolve();
     });
-    this["imgArray"] = imgs;
     this.completedCount = 0;
-    this["currentIndex"] = 0;
-    this["get20Img"] = () => {
+    this.currentIndex = 0;
+    this.get20Img = () => {
         this.currentIndex = 10;
         return this.imgArray.slice(0, 10);
     };
@@ -77,14 +78,12 @@ var ImgArrayManager = function(imgs) {
         }
     }
     this.batchDownload = () => {
-        this.total = imgs.length;
         return new Promise((res, rej) =>{
             this.resolve = res;
             this.downloadFor20(this.get20Img(), "./");
         });
     }
 };
-var imgArrayManager = new ImgArrayManager();
 
 
 
