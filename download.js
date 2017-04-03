@@ -21,7 +21,7 @@ const ImgArrayManager = function(imgs) {
     this.dEmitter.on("next", (dirName) => {
         var currentImg = this.getCurrentImg();
         if (currentImg != undefined) {
-            startDownload(currentImg.src, dirName).then(this.getHttpReqCallback(currentImg.src, dirName));
+            this.startDownload(currentImg, dirName);
         } 
     });
     this.dEmitter.on("over", () => {
@@ -70,7 +70,8 @@ const ImgArrayManager = function(imgs) {
             })(fileName, contentLength));
         };
     };
-    this.startDownload = (imgSrc, dirName) => {
+    this.startDownload = (img, dirName) => {
+        var imgSrc = img.src;
         var urlObj = url.parse(imgSrc);
         // var fileName = path.basename(imgSrc);
         var options = {
@@ -79,9 +80,9 @@ const ImgArrayManager = function(imgs) {
             headers: new ReqHeadersTemp()
         };
 
+        var fileName = img.id + ".jpg";
         // var req = http.request(options, getHttpReqCallback(imgSrc, dirName));
         var req = http.request(options,  (res) => {
-            var fileName = path.basename(imgSrc);
             var contentLength = parseInt(res.headers['content-length']);
             var fileBuff = [];
             res.on('data', function (chunk) {
@@ -93,7 +94,7 @@ const ImgArrayManager = function(imgs) {
                 console.log("bufferLenght = " + totalBuff.length + ", this contentLength = " + contentLength);
                 if (totalBuff.length < contentLength) {
                     console.log(imgSrc + " download error, try again");
-                    startDownload(imgSrc, dirName);
+                    this.startDownload(img, dirName);
                     return;
                 }
                 fs.appendFile(dirName + "/" + fileName, totalBuff, function(err){});
@@ -112,8 +113,8 @@ const ImgArrayManager = function(imgs) {
             console.log(imgSrc + 'timeout');
             req.abort();
         });
-        req.on('error', function(e) {
-            this.startDownload(imgSrc, dirName);
+        req.on('error', (e)=> {
+            this.startDownload(img, dirName);
         });
 
         req.end();
@@ -121,8 +122,8 @@ const ImgArrayManager = function(imgs) {
     this.downloadFor20 = (imgSrcArray, dirName) => {
         for (var i = 0; i < imgSrcArray.length; i++) {
             //   var imgSrc = imgSrcArray[i].imrSrc;
-            var imgSrc = imgSrcArray[i].src;
-            this.startDownload(imgSrc, dirName);
+            var img = imgSrcArray[i];
+            this.startDownload(img, dirName);
         }
     }
     this.batchDownload = () => {
